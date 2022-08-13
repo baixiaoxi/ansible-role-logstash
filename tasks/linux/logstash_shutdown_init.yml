@@ -1,0 +1,11 @@
+# ----------------------------------------------------------------------------
+# Shutdown logstash
+# ----------------------------------------------------------------------------
+---
+
+- name: Stop logstash service
+  service:
+    name: 'logstash'
+    state: stopped
+  become: true
+  tags: stop_logstash

@@ -1,0 +1,24 @@
+# ----------------------------------------------------------------------------
+# Stop logstash
+# ----------------------------------------------------------------------------
+---
+
+# Changed from SIGTERM to SIGKILL on Oct 23, 2019 by mike.place@elastic.co
+# This should be changed back to SIGTERM after the issue below is resolved:
+# https://github.com/elastic/logstash/issues/11253
+- name: Stop logstash process
+  block:
+    - name: Get logstash process
+      shell: "ps -efw | grep logstash | grep -v grep | awk '{print $2}'"
+      args:
+        executable: /bin/bash
+      register: logstash_stop_process_id
+      changed_when: false
+    - name: Stop logstash process
+      command: "kill -SIGKILL {{ logstash_stop_process_id.stdout }}"
+      when: logstash_stop_process_id.stdout | length > 0
+  failed_when: false
+  changed_when: false
+  async: 5
+  poll: 0
+  tags: stop_logstash

@@ -1,0 +1,14 @@
+# ----------------------------------------------------------------------------
+# Start logstash
+# ----------------------------------------------------------------------------
+---
+
+- name: Start logstash process
+  shell: 'nohup {{ logstash_exe }} --setup >/dev/null 2>&1 &'
+  args:
+    executable: /bin/bash
+  failed_when: false
+  changed_when: false
+  async: 5
+  poll: 0
+  register: start_logstash_process

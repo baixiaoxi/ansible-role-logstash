@@ -1,0 +1,11 @@
+# ----------------------------------------------------------------------------
+# Start logstash
+# ----------------------------------------------------------------------------
+---
+
+- name: Start logstash systemd
+  systemd:
+    name: 'logstash'
+    state: started
+  become: true
+  tags: start_logstash

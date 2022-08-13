@@ -1,0 +1,12 @@
+# ----------------------------------------------------------------------------
+# Uninstall Linux logstash packages
+# ----------------------------------------------------------------------------
+---
+
+- name: Uninstall logstash deb package
+  apt:
+    name: 'logstash'
+    state: absent
+    purge: true
+  become: true
+  tags: uninstall_logstash

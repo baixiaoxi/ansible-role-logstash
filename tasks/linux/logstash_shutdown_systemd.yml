@@ -1,0 +1,11 @@
+# ----------------------------------------------------------------------------
+# Shutdown logstash
+# ----------------------------------------------------------------------------
+---
+
+- name: Stop logstash systemd
+  systemd:
+      name: 'logstash.service'
+      state: stopped
+  become: true
+  tags: stop_logstash

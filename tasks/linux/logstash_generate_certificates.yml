@@ -1,0 +1,30 @@
+---
+# 检查本地秘钥文件是否存在
+- name: Ensure certs folder exists
+  file:
+    path: "{{ logstash_config_dir }}/certs"
+    state: directory
+    owner: root
+    group: "{{ logstash_group }}"
+    mode: 0755
+
+# 上传秘钥
+- name: Upload logstash keys, ca/ca.crt
+  copy:
+    src: "{{ elk_certs_dir }}/logstash/ca/ca.crt"
+    dst: "{{ logstash_config_dir }}/certs/ca/ca.crt"
+
+- name: Upload logstash keys, logstash/logstash.crt
+  copy:
+    src: "{{ elk_certs_dir }}/logstash/logstash/logstash.crt"
+    dst: "{{ logstash_config_dir }}/certs/logstash/logstash.crt"
+
+- name: Upload logstash keys, logstash/logstash.pkcs8.key
+  copy:
+    src: "{{ elk_certs_dir }}/logstash/logstash/logstash.pkcs8.key"
+    dst: "{{ logstash_config_dir }}/certs/logstash/logstash.pkcs8.key"
+
+- name: Upload logstash keys, elasticsearch/elasticsearch-ca.crt
+  copy:
+    src: "{{ elk_certs_dir }}/elasticsearch/elasticsearch-ca.crt"
+    dst: "{{ logstash_config_dir }}/certs/elasticsearch/elasticsearch-ca.crt"

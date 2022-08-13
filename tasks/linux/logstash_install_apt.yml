@@ -1,0 +1,32 @@
+# ----------------------------------------------------------------------------
+# Install Linux logstash packages
+# ----------------------------------------------------------------------------
+---
+# 从repo仓库安装
+- name: "Check if elasticsearch-keyring exists"
+  stat:
+    path: "/usr/share/keyrings/elasticsearch-keyring.gpg"
+  register: elasticsearch_gpg
+
+# Add elasticsearch PSK
+- name: Add elasticsearch public signing key
+  shell: "wget -qO - {{ es_apt_key }} | sudo gpg --dearmor -o /usr/share/keyrings/elasticsearch-keyring.gpg"
+  when: not elasticsearch_gpg.stat.exists
+
+# Add elasticsearch repo definitions
+- name: Add elasticsearch repo definitions
+  apt_repository:
+    repo: "deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] {{ elastic_repo }} stable main"
+    state: present
+  when: not elasticsearch_gpg.stat.exists
+
+- name: Update repository
+  become: true
+  apt: update_cache=true
+
+- name: Install package
+  become: true
+  tags: install_logstash
+  apt:
+    name: '{{ logstash_package }}{% if logstash_version is defined and logstash_version != "" %}={{ logstash_version }}{% endif %}'
+    state: present

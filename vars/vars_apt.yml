@@ -1,0 +1,28 @@
+# ----------------------------------------------------------------------------
+# Variables for deb package
+# ----------------------------------------------------------------------------
+
+---
+
+# Run as root
+logstash_run_as_root: true
+
+# logstash package
+logstash_package: "logstash"
+
+# logstash bin
+logstash_bin_dir: '/usr/share/logstash/bin'
+logstash_exe: '{{ logstash_bin_dir }}/logstash'
+logstash_plugin_exe: '{{ logstash_bin_dir }}/logstash-plugin'
+
+# logstash logs
+logstash_log_dir: '/var/log/logstash'
+logstash_log_file: '{{ logstash_log_dir }}/logstash-plain.log'
+
+# logstash config
+logstash_config_dir: '/etc/logstash'
+logstash_certs_dir: '/etc/logstash/certs'
+logstash_config_file: '{{ logstash_config_dir }}/logstash.yml'
+
+# logstash conf
+logstash_conf_path: '{{ logstash_config_dir }}/logstash.conf'

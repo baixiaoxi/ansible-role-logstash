@@ -1,0 +1,26 @@
+# ----------------------------------------------------------------------------
+# Install Linux logstash packages
+# ----------------------------------------------------------------------------
+---
+
+- name: Download logstash tar package
+  get_url:
+    url: '{{ logstash_package_url }}'
+    dest: '{{ logstash_package }}'
+    timeout: '{{ url_timeout }}'
+    checksum: 'sha512:{{ logstash_package_url }}.sha512'
+  register: logstash_get_url
+  until: logstash_get_url is not failed
+  retries: 2
+  delay: 30
+
+- name: Install logstash tar package
+  unarchive:
+    src: '{{ logstash_package }}'
+    dest: '{{ logstash_install_dir }}'
+    remote_src: true
+
+- name: Remove logstash tar package
+  ansible.builtin.file:
+    path: '{{ logstash_package }}'
+    state: absent

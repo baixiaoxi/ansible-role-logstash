@@ -1,0 +1,11 @@
+# ----------------------------------------------------------------------------
+# Start logstash
+# ----------------------------------------------------------------------------
+---
+
+- name: Start logstash service
+  service:
+    name: 'logstash'
+    state: started
+  become: true
+  tags: start_logstash

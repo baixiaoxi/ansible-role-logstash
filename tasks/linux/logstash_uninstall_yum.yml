@@ -1,0 +1,11 @@
+# ----------------------------------------------------------------------------
+# Uninstall Linux logstash packages
+# ----------------------------------------------------------------------------
+---
+
+- name: Uninstall logstash rpm package
+  yum:
+    name: 'logstash'
+    state: absent
+  become: true
+  tags: uninstall_logstash

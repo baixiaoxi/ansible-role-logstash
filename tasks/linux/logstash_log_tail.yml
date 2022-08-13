@@ -1,0 +1,38 @@
+# ----------------------------------------------------------------------------
+# Logstash log tail
+# ----------------------------------------------------------------------------
+---
+
+- name: Get system date
+  command: date
+  register: logstash_date
+  changed_when: false
+
+- name: Get date now
+  command: date +"%Y-%m-%dT%H:%M" --date "{{ logstash_date.stdout }}"
+  register: logstash_date_now
+  changed_when: false
+
+- name: Get date lower limit
+  command: date +"%Y-%m-%dT%H:%M" --date "{{ logstash_date.stdout }} -1 minutes"
+  register: logstash_date_lower
+  changed_when: false
+
+- name: Get date higher limit
+  command: date +"%Y-%m-%dT%H:%M" --date "{{ logstash_date.stdout }} +1 minutes"
+  register: logstash_date_higher
+  changed_when: false
+
+- name: Set search string
+  set_fact:
+    search_str: "{%- if ait_args is defined -%}
+                    {{ logstash_log_find[ait_args.get('ait_log_searchstr')] }}
+                 {%- elif ait_log_searchstr is defined -%}
+                    {{ logstash_log_find[ait_log_searchstr] }}
+                 {%- endif -%}"
+
+- name: Wait for log file and search string to be present
+  wait_for:
+    path: '{{ logstash_log_file }}'
+    timeout: '{{ logstash_timeout }}'
+    search_regex: '({{ logstash_date_now.stdout }}|{{ logstash_date_lower.stdout }}|{{ logstash_date_higher.stdout }})([\w*\W*\n]*){{ search_str }}'

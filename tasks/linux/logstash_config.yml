@@ -1,0 +1,177 @@
+# ----------------------------------------------------------------------------
+# Configure logstash on Linux
+#
+# Set certain parameters in logstash configuration
+#
+# If a user specifies a file, it takes higher precedence
+# If a user specifies logstash_config_params_strict=True internal params are appended, otherwise they are appended
+# ----------------------------------------------------------------------------
+---
+
+# 获取本地缓存的api_key
+- name: Retrive elasticsearch api key
+  set_fact:
+    api_key_json: "{{ lookup('file', elk_certs_dir + '/elk_api.key') | from_json }}"
+
+- name: debug1
+  debug:
+    msg: "api_key_json: {{ api_key_json }}"
+
+# 获取logstash使用的api key    
+- name: Retrive logstash api key
+  set_fact:
+    elk_api_key: "{{ api_key_json.id + ':' + api_key_json.api_key }}"
+
+- name: debug2
+  debug:
+    msg: "elk_api_key: {{ elk_api_key }}"
+
+- name: debug elk api key
+  debug:
+    msg: "key:{{ elk_api_key }}, json: {{ api_key_json }}"
+
+- name: Save original logstash configuration
+  copy:
+    src: '{{ logstash_config_file }}'
+    dest: '{{ logstash_config_file }}.org'
+    mode: 0660
+    remote_src: true
+    force: false
+  become: '{{ logstash_run_as_root | default(omit) }}'
+
+- name: Create logstash log directory
+  file:
+    path: '{{ logstash_log_dir }}'
+    state: directory
+    mode: 0777
+  become: true
+  tags: logstash_log_check
+
+- name: Logstash configuration - append
+  lineinfile:
+    path: '{{ logstash_config_file }}'
+    insertafter: EOF
+    line: '{{ config_item }}'
+  with_items: '{{ logstash_config_params  }}'
+  loop_control:
+    loop_var: config_item
+  become: '{{ logstash_run_as_root | default(omit) }}'
+  when: logstash_config_params_file is not defined and
+        logstash_config_params is defined
+
+- name: Logstash configuration - new file
+  copy:
+    src: '{{ logstash_config_params_file }}'
+    dest: '{{ logstash_config_file }}'
+    mode: 0660
+  become: '{{ logstash_run_as_root | default(omit) }}'
+  when: logstash_config_params_file is defined
+
+- name: Logstash configuration - append internal
+  block:
+    - name: Set network host
+      set_fact:
+        internal_logstash_config_params: |
+          path.logs: {{ logstash_log_dir }}
+          path.config:  {{ logstash_conf_path }}
+
+    - name: Add logstash configuration parameters
+      blockinfile:
+        path: '{{ logstash_config_file }}'
+        marker: '# {mark} ANSIBLE MANAGED BLOCK LOGSTASH PARAMETERS'
+        insertafter: EOF
+        content: '{{ internal_logstash_config_params }}'
+      become: '{{ logstash_run_as_root | default(omit) }}'
+  when: logstash_config_params_strict is not defined or not logstash_config_params_strict
+
+# 备份jvm.options配置文件
+- name: Backup jvm options file
+  become: yes
+  copy:
+    src: "{{ logstash_config_dir }}/jvm.options"
+    dest: "{{ logstash_config_dir }}/jvm.options.bak"
+    remote_src: yes
+    force: no # only copy it if the new path doesn't exist yet
+
+# 修改jvm.options配置文件
+- name: Modify jvm options
+  become: yes
+  lineinfile:
+    path: "{{ logstash_config_dir }}/jvm.options"
+    regexp: "{{ item.key }}"
+    line: "{{ item.value }}"
+    state: present
+  with_items:
+    - { key: '-Xmx', value: '-Xmx{{ logstash_jvm_xmx }}' }
+    - { key: '-Xms', value: '-Xms{{ logstash_jvm_xms }}' }
+
+# 上传配置文件到服务器
+- name: Upload pipeline configuration files
+  become: yes
+  template:
+    src: conf.d/elastic-agent.conf
+    dest: "{{ logstash_config_dir }}/conf.d/elastic-agent.conf"
+    owner: "{{ logstash_user }}"
+    group: "{{ logstash_group }}"
+    mode: 660
+    force: yes
+  notify: restart logstash
+
+# 自定义pattern
+- name: Ensure pattern directory exist
+  file:
+    path: '{{ logstash_pattern_dir }}'
+    state: directory
+    mode: 0755
+  become: true
+  tags: logstash_log_check
+
+# 上传pattern
+- name: Upload pattern files
+  become: yes
+  template:
+    src: patterns/my_patterns
+    dest: "{{ logstash_pattern_dir }}/my_patterns"
+    owner: root
+    group: "{{ logstash_group }}"
+    mode: "660"
+    force: yes
+  notify: restart logstash
+
+# 上传秘钥
+- name: Ensure certs folder exists'
+  become: yes
+  file:
+    path: "{{ directory_item }}"
+    state: directory
+    owner: "{{ logstash_user }}"
+    group: "{{ logstash_group }}"
+    mode: 0755
+  loop_control:
+    loop_var: directory_item
+  with_items:
+    - "{{ logstash_certs_dir }}"
+    - "{{ logstash_certs_dir }}/elasticsearch"
+    - "{{ logstash_certs_dir }}/logstash/ca"
+    - "{{ logstash_certs_dir }}/logstash/logstash"
+
+# 上传秘钥
+- name: Upload certificate files
+  become: yes
+  copy:
+    src: "{{ elk_certs_dir }}/{{ certs_item }}"
+    dest: "{{ logstash_certs_dir }}/{{ certs_item }}"
+    owner: "{{ logstash_user }}"
+    group: "{{ logstash_group }}"
+    mode: 0755
+  with_items:
+    - elasticsearch/elasticsearch-ca.crt
+    - logstash/ca/ca.crt
+    - logstash/logstash/logstash.crt
+    - logstash/logstash/logstash.pkcs8.key
+  loop_control:
+    loop_var: certs_item
+  notify: restart logstash
+    
+
+    

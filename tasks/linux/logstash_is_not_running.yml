@@ -1,0 +1,16 @@
+# ----------------------------------------------------------------------------
+# Check if logstash is not running
+# ----------------------------------------------------------------------------
+---
+
+- name: Verify logstash is not running
+  block:
+    - name: Get logstash process
+      shell: "ps -efw | grep logstash | grep -v grep | awk '{print $2}'"
+      args:
+        executable: /bin/bash
+      register: logstash_process_id
+      changed_when: false
+      retries: 5
+      delay: 3
+      until: logstash_process_id.stdout | length == 0
